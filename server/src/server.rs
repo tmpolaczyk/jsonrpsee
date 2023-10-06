@@ -137,7 +137,17 @@ where
 		let mut incoming = Monitored::new(Incoming(self.listener), &stop_handle);
 
 		loop {
-			match connections.select_with(&mut incoming).await {
+			use tokio::time::timeout;
+			let fut = connections.select_with(&mut incoming);
+			let res = match timeout(Duration::from_secs(5), fut).await {
+				Ok(x) => {
+					x
+				}
+				Err(e) => {
+					continue;
+				}
+			};
+			match res {
 				Ok((socket, remote_addr)) => {
 					let data = ProcessConnection {
 						remote_addr,
